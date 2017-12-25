@@ -10,6 +10,10 @@ cmake_minimum_required(VERSION 3.4.1)
 # You can define multiple libraries, and CMake builds them for you.
 # Gradle automatically packages shared libraries with your APK.
 
+include_directories(
+    src/main/cpp/include
+)
+
 add_library( # Sets the name of the library.
              native-lib
 
@@ -18,6 +22,11 @@ add_library( # Sets the name of the library.
 
              # Provides a relative path to your source file(s).
              src/main/cpp/native-lib.cpp
+             src/main/cpp/elf_utils.c
+             src/main/cpp/injector.c
+             src/main/cpp/main.c
+             src/main/cpp/ptrace.c
+             src/main/cpp/utils.c
 )
 
 link_directories( libs )
@@ -36,15 +45,6 @@ find_library( # Sets the name of the path variable.
               # you want CMake to locate.
               log )
 
-find_library(
-    MY_LIBRARY
-    NAMES libfrida-core.a
-)
-
-if ( NOT MY_LIBRARY)
-    message("MY_IBRARY NOT FOUND")
-    return()
-endif()
 
 
 
@@ -57,5 +57,4 @@ target_link_libraries( # Specifies the target library.
 
                        # Links the target library to the log library
                        # included in the NDK.
-                       ${MY_LIBRARY}
                        ${log-lib} )
