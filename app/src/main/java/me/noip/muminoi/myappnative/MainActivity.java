@@ -6,6 +6,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import java.util.List;
+
 import sg.vantagepoint.uncrackable2.CodeCheck;
 
 public class MainActivity extends AppCompatActivity {
@@ -27,13 +29,27 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClick(View v)
     {
-        Log.d("KKK","OnClick");
+        /*Log.d("KKK","OnClick");
         sg.vantagepoint.uncrackable2.MainActivity m = new sg.vantagepoint.uncrackable2.MainActivity();
         m.Init();
         Log.d("KKK","After Init");
         CodeCheck c = new CodeCheck();
-        Log.d("KKK",""+ c.a("1213"));
+        Log.d("KKK",""+ c.a("1213"));*/
+
+        String[] s = getModules();
+        for(int i=0;i<s.length;i++){
+            Log.d("KKK",s[i]);
+        }
+        Log.d("KKK","FUCK");
     }
+
+    public void onTestClick(View v)
+    {
+        Log.d("KKK","test start");
+        test();
+        Log.d("KKK","test end");
+    }
+
 
     /**
      * A native method that is implemented by the 'native-lib' native library,
@@ -41,4 +57,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public native String stringFromJNI();
     public native String stringFromJNI2();
+    public native String[] getModules();
+    public native void test();
+
 }

@@ -2,15 +2,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ptrace.h>
+#include <string.h>
 #include "config.h"
 #include "elf_utils.h"
 #include "ptrace.h"
 #include "utils.h"
 
+#include <android/log.h>
+#define  LOG_TAG    "elf_utils"
+#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
 FILE* OpenElfFile(const char* library_path) {
   if (library_path != NULL) {
     if (DEBUG) {
-      printf("Open ELF file: %s\n", library_path);
+        LOGD("Open ELF file: %s\n", library_path);
     }
     FILE* fp = fopen(library_path, "r");
     return fp;
@@ -21,7 +27,7 @@ FILE* OpenElfFile(const char* library_path) {
 void CloseElfFile(FILE* elf_file) {
   if (elf_file != NULL) {
     if (DEBUG) {
-      printf("Close ELF file\n");
+        LOGD("Close ELF file\n");
     }
     fclose(elf_file);
   }
@@ -43,7 +49,7 @@ size_t GetShstrtabContent(char** shstrtab_content, FILE* elf_file) {
   GetElfHeader(elf_header, elf_file);
   off_t shstrtab_header_offset = elf_header->e_shoff + elf_header->e_shstrndx * sizeof(Elf32_Shdr);
   if (DEBUG) {
-    printf("shstrtab header offset: %lx\n", shstrtab_header_offset);
+      LOGD("shstrtab header offset: %lx\n", shstrtab_header_offset);
   }
   free(elf_header);
   Elf32_Shdr* shstrtab_header = (Elf32_Shdr*) malloc(sizeof(Elf32_Shdr));
@@ -52,7 +58,7 @@ size_t GetShstrtabContent(char** shstrtab_content, FILE* elf_file) {
   off_t shstrtab_base_offset = shstrtab_header->sh_offset;
   size_t shstrtab_size = shstrtab_header->sh_size;
   if (DEBUG) {
-    printf("shstrtab base offset: %ld, shstrtab size: %u\n", shstrtab_base_offset, shstrtab_size);
+      LOGD("shstrtab base offset: %ld, shstrtab size: %u\n", shstrtab_base_offset, shstrtab_size);
   }
   free(shstrtab_header);
   if (shstrtab_content == NULL) {
@@ -75,9 +81,10 @@ void GetSectionHeaderByName(Elf32_Shdr* section_header, FILE* elf_file, const ch
   off_t base_section_header_offset = elf_header->e_shoff;
   free(elf_header);
   if (DEBUG) {
-    printf("section count: %u, base section header offset: %lx\n", section_count, base_section_header_offset);
+      LOGD("section count: %u, base section header offset: %lx\n", section_count, base_section_header_offset);
   }
   char* shstrtab_content = NULL;
+    //TODO: fix this function
   GetShstrtabContent(&shstrtab_content, elf_file);
   for(int i = 0; i < section_count; ++i) {
     fseek(elf_file, base_section_header_offset, SEEK_SET);
@@ -85,7 +92,7 @@ void GetSectionHeaderByName(Elf32_Shdr* section_header, FILE* elf_file, const ch
     char* section_name = shstrtab_content + section_header->sh_name;
     if (strcmp(section_name, target_section_name) == 0) {
       if (DEBUG) {
-        printf("index: %d, section name: %s\n", i, section_name);
+          LOGD("index: %d, section name: %s\n", i, section_name);
       }
       break;
     }
@@ -96,7 +103,7 @@ void GetSectionHeaderByName(Elf32_Shdr* section_header, FILE* elf_file, const ch
 
 void PatchRemoteGot(pid_t pid, const char* library_path, long original_function_addr, long target_function_addr) {
   if (DEBUG) {
-    printf("Get got content of %s in process %d\n", library_path, pid);
+      LOGD("Get got content of %s in process %d\n", library_path, pid);
   }
   PtraceAttach(pid);
   FILE* elf_file = OpenElfFile(library_path);
@@ -106,19 +113,19 @@ void PatchRemoteGot(pid_t pid, const char* library_path, long original_function_
   off_t got_addr_offset = got_section_header->sh_addr;
   free(got_section_header);
   if (DEBUG) {
-    printf("got section size: %u, got addr offset: %lx\n", got_section_size, got_addr_offset);
+      LOGD("got section size: %u, got addr offset: %lx\n", got_section_size, got_addr_offset);
   }
   long module_base_addr = GetModuleBaseAddr(pid, library_path);
   long got_section_address = module_base_addr + got_addr_offset;
   if (DEBUG) {
-    printf("module base addr: %lx, got section address: %lx\n", module_base_addr, got_section_address);
+      LOGD("module base addr: %lx, got section address: %lx\n", module_base_addr, got_section_address);
   }
   for (int i = 0; i < got_section_size; i += sizeof(long)) {
     long got_entry = ptrace(PTRACE_PEEKDATA, pid, (void *)(got_section_address + i), NULL);
     if (got_entry == original_function_addr) {
       PtraceWrite(pid, (uint8_t*)(got_section_address + i), (uint8_t*)&target_function_addr, sizeof(long));
       if (DEBUG) {
-        printf("hooked got entry %d: %lx with %lx\n", i / sizeof(long), got_entry, target_function_addr);
+          LOGD("hooked got entry %d: %lx with %lx\n", i / sizeof(long), got_entry, target_function_addr);
       }
     }
   }
