@@ -107,28 +107,145 @@ unsigned int GetModuleBaseAddr(int pid,char *moduleName)
     return 0;
 }
 
+std::vector<unsigned char> ReadFile(const char *fileName)
+{
+
+    FILE *f = fopen(fileName, "rb");
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);  //same as rewind(f);
+
+    unsigned char *ptr = (unsigned char *)malloc(fsize);
+    fread(ptr, fsize, 1, f);
+    fclose(f);
+
+    LOGD("ReadFile %s size=%ld",fileName,fsize);
+
+    std::vector<unsigned char> ret;
+    for(int i=0;i<fsize;i++){
+        ret.push_back(ptr[i]);
+    }
+    free(ptr);
+    return ret;
+}
+
+void DumpHex(void * src,int len)
+{
+    char tmp[128];
+    char line[1024];
+    line[0] = 0;
+    int i,j;
+    unsigned char *p = (unsigned char *)src;
+    for(i=0;i<len;i++){
+        sprintf(tmp,"%02X ",p[i]);strcat(line,tmp);
+        if(((i+1)%16)==0){
+            for(j=16;j>0;j--){
+                unsigned char ch = p[i+1-j];
+                if(isalnum(ch)){
+                    sprintf(tmp,"%c",ch);strcat(line,tmp);
+                }else{
+                    sprintf(tmp,".");strcat(line,tmp);
+                }
+            }
+            //sprintf(tmp,"\n");strcat(line,tmp);
+            LOGD("%s",line);line[0]=0;
+        }
+    }
+    int index = i%16;
+    // pad space
+    for(j=0;j<(16-index);j++){
+        sprintf(tmp,"   ");strcat(line,tmp);
+    }
+    // add the resh if have
+    for(j=index;j>0;j--){
+        unsigned char ch = p[i-j];
+        if(isalnum(ch)){
+            sprintf(tmp,"%c",ch);;strcat(line,tmp);
+        }else{
+            sprintf(tmp,".");;strcat(line,tmp);
+        }
+    }
+    LOGD("%s",line);line[0]=0;
+}
+
+
+void DumpELFHeader(Elf32_Ehdr* elf_header)
+{
+    LOGD("e_entry=%08X e_phoff=%08X e_shstrndx=%d",elf_header->e_entry,elf_header->e_phoff,elf_header->e_shstrndx);
+    LOGD("e_shoff=%08X e_shnum=%d e_shentsize=%d",elf_header->e_shoff,elf_header->e_shnum,elf_header->e_shentsize);
+}
+
+void DumpELFSectionHeader(Elf32_Shdr *section_header)
+{
+    Elf32_Word sh_name;
+    Elf32_Word sh_type;
+    Elf32_Word sh_flags;
+    Elf32_Addr sh_addr;
+    Elf32_Off sh_offset;
+    Elf32_Word sh_size;
+    Elf32_Word sh_link;
+    Elf32_Word sh_info;
+    Elf32_Word sh_addralign;
+    Elf32_Word sh_entsize;
+    LOGD("sh_name=%d sh_type=%08X sh_addr=%08X sh_offset=%08X sh_size=%08X",
+         section_header->sh_name,section_header->sh_type,section_header->sh_addr,section_header->sh_offset,
+         section_header->sh_size
+    );
+}
+
+Elf32_Shdr GetSectionByName(char *fileName,char *sectionName)
+{
+    Elf32_Shdr ret;
+    memset(&ret,0,sizeof(Elf32_Shdr));
+    std::vector<unsigned char> elfData =  ReadFile(fileName);
+    Elf32_Ehdr* elf_header = (Elf32_Ehdr*)&elfData[0];
+    off_t shstrtab_header_offset = elf_header->e_shoff + elf_header->e_shstrndx * sizeof(Elf32_Shdr);
+    Elf32_Shdr *shstrtab_header = (Elf32_Shdr *)&elfData[shstrtab_header_offset];
+    unsigned char *shstrtab_ptr = (unsigned char *)&elfData[shstrtab_header->sh_offset];
+    size_t section_count = elf_header->e_shnum;
+    off_t base_section_header_offset = elf_header->e_shoff;
+    Elf32_Shdr *section_header;
+    for(int i = 0; i < section_count; ++i) {
+        section_header = (Elf32_Shdr *)&elfData[elf_header->e_shoff + (i*sizeof(Elf32_Shdr))];
+        char *section_name = (char *)(&shstrtab_ptr[section_header->sh_name]);
+        if(strcmp(section_name,sectionName)==0){
+            ret = *section_header;
+            break;
+        }
+    }
+    return ret;
+}
+
 void DumpELF(char *fileName)
 {
-    FILE* elf_file = OpenElfFile(fileName);
-    Elf32_Shdr* got_section_header = (Elf32_Shdr*) malloc(sizeof(Elf32_Shdr));
-    GetSectionHeaderByName(got_section_header, elf_file, ".got");
-/*    size_t got_section_size = got_section_header->sh_size;
-    off_t got_addr_offset = got_section_header->sh_addr;
-    free(got_section_header);
-    LOGD("got section size: %u, got addr offset: %lx\n", got_section_size, got_addr_offset);
+    //FILE* elf_file = OpenElfFile(fileName);
+    std::vector<unsigned char> elfData =  ReadFile(fileName);
+    Elf32_Ehdr* elf_header = (Elf32_Ehdr*)&elfData[0];
+    //DumpHex(elf_header,sizeof(Elf32_Ehdr));
+    DumpELFHeader(elf_header);
+    //Find String Table
+    LOGD("String table");
+    off_t shstrtab_header_offset = elf_header->e_shoff + elf_header->e_shstrndx * sizeof(Elf32_Shdr);
+    Elf32_Shdr *shstrtab_header = (Elf32_Shdr *)&elfData[shstrtab_header_offset];
+    //DumpHex(shstrtab_header,sizeof(Elf32_Shdr));
+    DumpELFSectionHeader(shstrtab_header);
+    unsigned char *shstrtab_ptr = (unsigned char *)&elfData[shstrtab_header->sh_offset];
+    //DumpHex(shstrtab_ptr,shstrtab_header->sh_size);
 
-    long module_base_addr = GetModuleBaseAddr(0, fileName);
-    long got_section_address = module_base_addr + got_addr_offset;
-    LOGD("module base addr: %lx, got section address: %lx\n", module_base_addr, got_section_address);
+    LOGD("Section table");
+    size_t section_count = elf_header->e_shnum;
+    off_t base_section_header_offset = elf_header->e_shoff;
+    Elf32_Shdr *section_header;
 
-    for (int i = 0; i < got_section_size; i += sizeof(long)) {
-        //long got_entry = ptrace(PTRACE_PEEKDATA, pid, (void *)(got_section_address + i), NULL);
-        //if (got_entry == original_function_addr) {
-        //    PtraceWrite(pid, (uint8_t*)(got_section_address + i), (uint8_t*)&target_function_addr, sizeof(long));
-        //   LOGD("hooked got entry %d: %lx with %lx\n", i / sizeof(long), got_entry, target_function_addr);
-        //}
+    for(int i = 0; i < section_count; ++i) {
+        //fseek(elf_file, base_section_header_offset, SEEK_SET);
+        //fread(section_header, sizeof(Elf32_Shdr), 1, elf_file);
+        section_header = (Elf32_Shdr *)&elfData[elf_header->e_shoff + (i*sizeof(Elf32_Shdr))];
+        char *section_name = (char *)(&shstrtab_ptr[section_header->sh_name]);
+        //DumpHex(section_header,sizeof(Elf32_Shdr));
+        LOGD("%s",section_name);
+        DumpELFSectionHeader(section_header);
     }
-*/
 }
 
 
@@ -158,6 +275,27 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_me_noip_muminoi_myappnative_MainActivity_test(JNIEnv *env, jobject instance) {
 
+    printf("This is printf");
     // TODO
     DumpELF("/system/lib/libc.so");
+    unsigned int moduleBaseAddr = GetModuleBaseAddr(0,"/system/lib/libc.so");
+    LOGD("moduleBaseAddr=%08X",moduleBaseAddr);
+    Elf32_Shdr gotShdr = GetSectionByName("/system/lib/libc.so",".got");
+    DumpHex((void *)(moduleBaseAddr + gotShdr.sh_addr),gotShdr.sh_size);
+    for (int i = 0; i < gotShdr.sh_size; i += sizeof(long)) {
+        unsigned int funcAddr = *(unsigned int *) (moduleBaseAddr + gotShdr.sh_addr + i);
+        LOGD("%08X %08X %08X", funcAddr, funcAddr - moduleBaseAddr,gotShdr.sh_addr + i);
+        if (funcAddr == (unsigned int) printf) {
+            LOGD("printf %08X", funcAddr);
+        }
+        if (funcAddr == (unsigned int) strncmp) {
+            LOGD("strncmp %08X", funcAddr);
+        }
+        if (funcAddr == (unsigned int) strcmp) {
+            LOGD("strcmp %08X", funcAddr);
+        }
+    }
+    LOGD("strcmp %08X %08X",(int)strcmp,(unsigned int)strcmp - moduleBaseAddr);
+    LOGD("strcpy %08X %08X",(int)strcpy,(unsigned int)strcpy - moduleBaseAddr);
+    LOGD("printf %08X %08X",(int)printf,(unsigned int)printf - moduleBaseAddr);
 }
