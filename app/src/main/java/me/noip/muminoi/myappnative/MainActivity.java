@@ -25,28 +25,33 @@ public class MainActivity extends AppCompatActivity {
         // Example of a call to a native method
         TextView tv = (TextView) findViewById(R.id.sample_text);
         tv.setText(stringFromJNI());
+
+        sg.vantagepoint.uncrackable2.MainActivity m = new sg.vantagepoint.uncrackable2.MainActivity();
+        m.Init();
     }
 
     public void onClick(View v)
     {
-        /*Log.d("KKK","OnClick");
-        sg.vantagepoint.uncrackable2.MainActivity m = new sg.vantagepoint.uncrackable2.MainActivity();
-        m.Init();
-        Log.d("KKK","After Init");
-        CodeCheck c = new CodeCheck();
-        Log.d("KKK",""+ c.a("1213"));*/
-
+/*        Log.d("KKK","OnClick");
         String[] s = getModules();
         for(int i=0;i<s.length;i++){
             Log.d("KKK",s[i]);
         }
-        Log.d("KKK","FUCK");
+        Log.d("KKK","FUCK");*/
+
+        //sg.vantagepoint.uncrackable2.MainActivity m = new sg.vantagepoint.uncrackable2.MainActivity();
+        //m.Init();
+        //Log.d("KKK","After Init");
+        CodeCheck c = new CodeCheck();
+        Log.d("KKK",""+ c.a("1213"));
+
     }
 
     public void onTestClick(View v)
     {
         Log.d("KKK","test start");
-        test();
+        //test();
+        patchstrncmp();
         Log.d("KKK","test end");
     }
 
@@ -59,5 +64,7 @@ public class MainActivity extends AppCompatActivity {
     public native String stringFromJNI2();
     public native String[] getModules();
     public native void test();
+    public native void patchstrncmp();
+    public native void testParam(byte[] a);
 
 }

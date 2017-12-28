@@ -84,7 +84,6 @@ void GetSectionHeaderByName(Elf32_Shdr* section_header, FILE* elf_file, const ch
       LOGD("section count: %u, base section header offset: %lx\n", section_count, base_section_header_offset);
   }
   char* shstrtab_content = NULL;
-    //TODO: fix this function
   GetShstrtabContent(&shstrtab_content, elf_file);
   for(int i = 0; i < section_count; ++i) {
     fseek(elf_file, base_section_header_offset, SEEK_SET);
