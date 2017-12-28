@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClick(View v)
     {
-/*        Log.d("KKK","OnClick");
+        /*Log.d("KKK","OnClick");
         String[] s = getModules();
         for(int i=0;i<s.length;i++){
             Log.d("KKK",s[i]);
@@ -50,8 +50,8 @@ public class MainActivity extends AppCompatActivity {
     public void onTestClick(View v)
     {
         Log.d("KKK","test start");
-        //test();
-        patchstrncmp();
+        test();
+        //patchstrncmp();
         Log.d("KKK","test end");
     }
 

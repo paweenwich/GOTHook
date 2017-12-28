@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 include_directories(
-    src/main/cpp/include
+    #src/main/cpp/include
 )
 
 add_library( # Sets the name of the library.
@@ -21,12 +21,14 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
+             src/main/cpp/Utils.cpp
+             src/main/cpp/ELFFile.cpp
              src/main/cpp/native-lib.cpp
-             src/main/cpp/elf_utils.c
-             src/main/cpp/injector.c
-             src/main/cpp/main.c
-             src/main/cpp/ptrace.c
-             src/main/cpp/utils.c
+             #src/main/cpp/elf_utils.c
+             #src/main/cpp/injector.c
+             #src/main/cpp/main.c
+             #src/main/cpp/ptrace.c
+             #src/main/cpp/utils.c
 )
 
 link_directories( libs )
