@@ -10,51 +10,20 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
-
-
-char* replace_char(char* str, char find, char replace);
-class ProcMapsData {
-public:
-    char range[32];
-    char mode[32];
-    char size[32];
-    char unk1[32];
-    char unk2[32];
-    char name[1024];
-    unsigned int startddr;
-    unsigned int endAddr;
-    ProcMapsData() {
-        name[0] = 0;
-        range[0] = 0;
-        size[0]=0;
-        unk1[0]=0;
-        unk2[0]=0;
-    }
-    void Init() {
-        char tmp[32];
-        strcpy(tmp,range);
-        replace_char(tmp,'-',' ');
-        sscanf(tmp,"%x %x",&startddr,&endAddr);
-    }
-
-};
+#include <string>
 
 class Utils {
-
+public:
+    static std::vector<unsigned char> ReadFile(const char *fileName);
+    static bool WriteFile(char *fileName,std::vector<unsigned char>& data);
+    static bool WriteAllBytes(char *fileName,unsigned char *data,int size);
+    static void DumpHex(void * src,int len);
+    static char* replace_char(char* str, char find, char replace);
+    static std::string ConcatStrings(std::vector<std::string> &lst,std::string seperator);
+    static bool StringReplace(std::string& str, const std::string& from, const std::string& to);
+    static std::string SaveCString(char *data);
+    static int MemoryFind(unsigned char *data,int data_size, unsigned char* pattern,int pattern_size);
+    static unsigned int AllocateExecutableMemory(unsigned int size);
 };
-
-pid_t GetPid(const char* process_name);
-bool IsSelinuxEnabled();
-void DisableSelinux();
-long GetModuleBaseAddr(pid_t pid, const char* module_name);
-long GetRemoteFuctionAddr(pid_t remote_pid, const char* module_name, long local_function_addr);
-std::vector<unsigned char> ReadFile(const char *fileName);
-std::vector<ProcMapsData> GetMaps(int pid);
-ProcMapsData GetModuleDataByAddr(int pid,unsigned int addr);
-ProcMapsData GetModuleData(int pid,char *moduleName);
-unsigned int GetModuleBaseAddr(int pid,char *moduleName);
-void DumpHex(void * src,int len);
-
-
 
 #endif //GOTHOOK_UTILS_H

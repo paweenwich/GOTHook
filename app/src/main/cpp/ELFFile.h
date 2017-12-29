@@ -7,15 +7,21 @@
 #include <elf.h>
 
 class ELFFile {
+protected:
+    unsigned char *dataPtr;
 public:
-    std::vector<unsigned char> data;
-    bool Read(char *fileName);
+    Elf32_Ehdr* headerPtr;
+    char *sectStringTablePtr;
+    char *dynStringTablePtr;
+    std::vector<unsigned char> fileBuffer;
+
+    ELFFile(char *fileName);
+    void Dump();
+    Elf32_Shdr *GetSectionByName(char *sectionName);
+    char *GetSectString(int index);
+    char *GetDynString(int index);
+    static void DumpELFHeader(Elf32_Ehdr* elf_header);
+    static void DumpELFSectionHeader(Elf32_Shdr *section_header);
 };
-
-void DumpELFHeader(Elf32_Ehdr* elf_header);
-void DumpELFSectionHeader(Elf32_Shdr *section_header);
-Elf32_Shdr GetSectionByName(char *fileName,char *sectionName);
-void DumpELF(char *fileName);
-
 
 #endif //GOTHOOK_ELFFILE_H

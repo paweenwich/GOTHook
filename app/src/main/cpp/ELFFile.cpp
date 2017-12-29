@@ -19,88 +19,93 @@
 #define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-bool ELFFile::Read(char *fileName) {
-    return false;
+ELFFile::ELFFile(char *fileName) {
+    fileBuffer = Utils::ReadFile(fileName);
+    this->dataPtr = &fileBuffer[0];
+
+    //Get sectStringTablePtr
+    headerPtr = (Elf32_Ehdr*)dataPtr;
+    off_t shstrtab_header_offset = headerPtr->e_shoff + headerPtr->e_shstrndx * sizeof(Elf32_Shdr);
+    Elf32_Shdr *shstrtab_header = (Elf32_Shdr *)&dataPtr[shstrtab_header_offset];
+    sectStringTablePtr = (char *)&dataPtr[shstrtab_header->sh_offset];
+
+    //Get dynStringTablePtr
+    Elf32_Shdr *dynStr_header = GetSectionByName(".dynstr");
+    dynStringTablePtr = (char *)&dataPtr[dynStr_header->sh_offset];
 }
 
 
-void DumpELFHeader(Elf32_Ehdr* elf_header)
+
+void ELFFile::DumpELFHeader(Elf32_Ehdr* elf_header)
 {
+    LOGD("ELF Header");
     LOGD("e_entry=%08X e_phoff=%08X e_shstrndx=%d",elf_header->e_entry,elf_header->e_phoff,elf_header->e_shstrndx);
     LOGD("e_shoff=%08X e_shnum=%d e_shentsize=%d",elf_header->e_shoff,elf_header->e_shnum,elf_header->e_shentsize);
 }
 
-void DumpELFSectionHeader(Elf32_Shdr *section_header)
+void ELFFile::DumpELFSectionHeader(Elf32_Shdr *section_header)
 {
-    Elf32_Word sh_name;
-    Elf32_Word sh_type;
-    Elf32_Word sh_flags;
-    Elf32_Addr sh_addr;
-    Elf32_Off sh_offset;
-    Elf32_Word sh_size;
-    Elf32_Word sh_link;
-    Elf32_Word sh_info;
-    Elf32_Word sh_addralign;
-    Elf32_Word sh_entsize;
     LOGD("sh_name=%d sh_type=%08X sh_addr=%08X sh_offset=%08X sh_size=%08X",
          section_header->sh_name,section_header->sh_type,section_header->sh_addr,section_header->sh_offset,
          section_header->sh_size
     );
 }
 
-Elf32_Shdr GetSectionByName(char *fileName,char *sectionName)
+void ELFFile::Dump()
 {
-    Elf32_Shdr ret;
-    memset(&ret,0,sizeof(Elf32_Shdr));
-    std::vector<unsigned char> elfData =  ReadFile(fileName);
-    Elf32_Ehdr* elf_header = (Elf32_Ehdr*)&elfData[0];
-    off_t shstrtab_header_offset = elf_header->e_shoff + elf_header->e_shstrndx * sizeof(Elf32_Shdr);
-    Elf32_Shdr *shstrtab_header = (Elf32_Shdr *)&elfData[shstrtab_header_offset];
-    unsigned char *shstrtab_ptr = (unsigned char *)&elfData[shstrtab_header->sh_offset];
-    size_t section_count = elf_header->e_shnum;
-    off_t base_section_header_offset = elf_header->e_shoff;
-    Elf32_Shdr *section_header;
-    for(int i = 0; i < section_count; ++i) {
-        section_header = (Elf32_Shdr *)&elfData[elf_header->e_shoff + (i*sizeof(Elf32_Shdr))];
-        char *section_name = (char *)(&shstrtab_ptr[section_header->sh_name]);
-        if(strcmp(section_name,sectionName)==0){
-            ret = *section_header;
-            break;
-        }
-    }
-    return ret;
-}
-
-void DumpELF(char *fileName)
-{
-    //FILE* elf_file = OpenElfFile(fileName);
-    std::vector<unsigned char> elfData =  ReadFile(fileName);
-    Elf32_Ehdr* elf_header = (Elf32_Ehdr*)&elfData[0];
-    //DumpHex(elf_header,sizeof(Elf32_Ehdr));
+    unsigned int moduleBaseAddr = (unsigned int)dataPtr;
+    Elf32_Ehdr* elf_header = (Elf32_Ehdr*)dataPtr;
     DumpELFHeader(elf_header);
-    //Find String Table
-    LOGD("String table");
-    off_t shstrtab_header_offset = elf_header->e_shoff + elf_header->e_shstrndx * sizeof(Elf32_Shdr);
-    Elf32_Shdr *shstrtab_header = (Elf32_Shdr *)&elfData[shstrtab_header_offset];
-    //DumpHex(shstrtab_header,sizeof(Elf32_Shdr));
-    DumpELFSectionHeader(shstrtab_header);
-    unsigned char *shstrtab_ptr = (unsigned char *)&elfData[shstrtab_header->sh_offset];
-    //DumpHex(shstrtab_ptr,shstrtab_header->sh_size);
 
     LOGD("Section table");
     size_t section_count = elf_header->e_shnum;
     off_t base_section_header_offset = elf_header->e_shoff;
     Elf32_Shdr *section_header;
-
     for(int i = 0; i < section_count; ++i) {
-        //fseek(elf_file, base_section_header_offset, SEEK_SET);
-        //fread(section_header, sizeof(Elf32_Shdr), 1, elf_file);
-        section_header = (Elf32_Shdr *)&elfData[elf_header->e_shoff + (i*sizeof(Elf32_Shdr))];
-        char *section_name = (char *)(&shstrtab_ptr[section_header->sh_name]);
+        section_header = (Elf32_Shdr *)&dataPtr[elf_header->e_shoff + (i*sizeof(Elf32_Shdr))];
         //DumpHex(section_header,sizeof(Elf32_Shdr));
-        LOGD("%s",section_name);
+        LOGD("%s",GetSectString(section_header->sh_name));
         DumpELFSectionHeader(section_header);
     }
+
+    LOGD("Import section (.dynsym)");
+    Elf32_Shdr *gotShdr = GetSectionByName(".dynsym");
+    if(gotShdr!=NULL) {
+        Utils::DumpHex((void *) (moduleBaseAddr + gotShdr->sh_addr), gotShdr->sh_size);
+        for (int i = 0; i < gotShdr->sh_size; i += sizeof(Elf32_Sym)) {
+            Elf32_Sym *sym = (Elf32_Sym *) (moduleBaseAddr + gotShdr->sh_addr + i);
+            LOGD("name=%d size=%08X value=%08X %s", sym->st_name, sym->st_size, sym->st_value,
+                 GetDynString(sym->st_name));
+        }
+    }
+}
+
+Elf32_Shdr* ELFFile::GetSectionByName(char *sectionName)
+{
+    Elf32_Ehdr* elf_header = (Elf32_Ehdr*)dataPtr;
+    off_t shstrtab_header_offset = elf_header->e_shoff + elf_header->e_shstrndx * sizeof(Elf32_Shdr);
+    Elf32_Shdr *shstrtab_header = (Elf32_Shdr *)&dataPtr[shstrtab_header_offset];
+    unsigned char *shstrtab_ptr = (unsigned char *)&dataPtr[shstrtab_header->sh_offset];
+    size_t section_count = elf_header->e_shnum;
+    off_t base_section_header_offset = elf_header->e_shoff;
+    Elf32_Shdr *section_header;
+    for(int i = 0; i < section_count; ++i) {
+        section_header = (Elf32_Shdr *)&dataPtr[elf_header->e_shoff + (i*sizeof(Elf32_Shdr))];
+        char *section_name = (char *)(&shstrtab_ptr[section_header->sh_name]);
+        if(strcmp(section_name,sectionName)==0){
+            return section_header;
+            break;
+        }
+    }
+    return NULL;
+}
+
+char *ELFFile::GetDynString(int index) {
+    return &dynStringTablePtr[index];
+}
+
+char *ELFFile::GetSectString(int index) {
+    return &sectStringTablePtr[index];
 }
 
 

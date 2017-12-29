@@ -22,6 +22,7 @@ add_library( # Sets the name of the library.
 
              # Provides a relative path to your source file(s).
              src/main/cpp/Utils.cpp
+             src/main/cpp/ProcUtil.cpp
              src/main/cpp/ELFFile.cpp
              src/main/cpp/native-lib.cpp
              #src/main/cpp/elf_utils.c

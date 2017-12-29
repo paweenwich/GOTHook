@@ -13,110 +13,14 @@
 
 #include <android/log.h>
 #include <cctype>
+#include <sys/mman.h>
 
 #define  LOG_TAG    "Utils"
 #define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-pid_t GetPid(const char* process_name) {
-    if (process_name == NULL) {
-        return -1;
-    }
-    DIR* dir = opendir("/proc");
-    if (dir == NULL) {
-        return -1;
-    }
-    struct dirent* entry;
-    while((entry = readdir(dir)) != NULL) {
-        size_t pid = atoi(entry->d_name);
-        if (pid != 0) {
-            char file_name[30];
-            snprintf(file_name, 30, "/proc/%d/cmdline", pid);
-            FILE *fp = fopen(file_name, "r");
-            char temp_name[50];
-            if (fp != NULL) {
-                fgets(temp_name, 50, fp);
-                fclose(fp);
-                if (strcmp(process_name, temp_name) == 0) {
-                    return pid;
-                }
-            }
-        }
-    }
-    return -1;
-}
 
-bool IsSelinuxEnabled() {
-    FILE* fp = fopen("/proc/filesystems", "r");
-    char* line = (char*) calloc(50, sizeof(char));
-    bool result = false;
-    while(fgets(line, 50, fp)) {
-        if (strstr(line, "selinuxfs")) {
-            result = true;
-        }
-    }
-    if (line) {
-        free(line);
-    }
-    fclose(fp);
-    return result;
-}
-
-void DisableSelinux() {
-    FILE* fp = fopen("/proc/mounts", "r");
-    char* line = (char*) calloc(1024, sizeof(char));
-    while(fgets(line, 1024, fp)) {
-        if (strstr(line, "selinuxfs")) {
-            strtok(line, " ");
-            char* selinux_dir = strtok(NULL, " ");
-            char* selinux_path = strcat(selinux_dir, "/enforce");
-            FILE* fp_selinux = fopen(selinux_path, "w");
-            char* buf = "0"; // set selinux to permissive
-            fwrite(buf, strlen(buf), 1, fp_selinux);
-            fclose(fp_selinux);
-            break;
-        }
-    }
-    fclose(fp);
-    if (line) {
-        free(line);
-    }
-}
-
-long GetModuleBaseAddr(pid_t pid, const char* module_name) {
-    long base_addr_long = 0;
-    if (pid == -1) {
-        return 0;
-    }
-    char* file_name = (char*) calloc(50, sizeof(char));
-    snprintf(file_name, 50, "/proc/%d/maps", pid);
-    FILE* fp = fopen(file_name, "r");
-    free(file_name);
-    char line[512];
-    if (fp != NULL) {
-        while(fgets(line, 512, fp) != NULL) {
-            if (strstr(line, module_name) != NULL) {
-                char* base_addr = strtok(line, "-");
-                base_addr_long = strtoul(base_addr, NULL, 16);
-                break;
-            }
-        }
-        fclose(fp);
-    }
-    return base_addr_long;
-}
-
-long GetRemoteFuctionAddr(pid_t remote_pid, const char* module_name, long local_function_addr) {
-    pid_t pid = getpid();
-    long local_base_addr = GetModuleBaseAddr(pid, module_name);
-    long remote_base_addr = GetModuleBaseAddr(remote_pid, module_name);
-    if (local_base_addr == 0 || remote_base_addr == 0) {
-        return 0;
-    }
-    return local_function_addr + (remote_base_addr - local_base_addr);
-}
-
-char* replace_char(char* str, char find, char replace)
+char* Utils::replace_char(char* str, char find, char replace)
 {
     char *current_pos = strchr(str,find);
     while (current_pos){
@@ -126,7 +30,7 @@ char* replace_char(char* str, char find, char replace)
     return str;
 }
 
-std::vector<unsigned char> ReadFile(const char *fileName)
+std::vector<unsigned char> Utils::ReadFile(const char *fileName)
 {
 
     FILE *f = fopen(fileName, "rb");
@@ -149,67 +53,8 @@ std::vector<unsigned char> ReadFile(const char *fileName)
 }
 
 
-std::vector<ProcMapsData> GetMaps(int pid)
-{
-    std::vector<ProcMapsData> ret;
-    char file_name[50];
-    if (pid <= 0) {
-        pid = getpid();
-    }
-    long base_addr_long = 0;
-    snprintf(file_name, 50, "/proc/%d/maps", pid);
-    FILE* fp = fopen(file_name, "r");
-    char line[10240];
-    if (fp != NULL) {
-        while(fgets(line, sizeof(line)-1, fp) != NULL) {
-            ProcMapsData p;
-            if(sscanf(line,"%s %s %s %s %s %s",p.range,p.mode,p.size,p.unk1,p.unk2,p.name)>=5){
-                p.Init();
-                ret.push_back(p);
-            }
-        }
-        fclose(fp);
-    }
-    return ret;
-}
 
-ProcMapsData GetModuleDataByAddr(int pid,unsigned int addr)
-{
-    std::vector<ProcMapsData> maps =  GetMaps(pid);
-    for(int i=0;i<maps.size();i++){
-        ProcMapsData p = maps[i];
-        if((p.startddr <= addr)&&(p.endAddr >= addr))
-        {
-            LOGD("GetModuleDataByAddr %08X found at %08X %08X ",addr, p.startddr,p.endAddr);
-            return p;
-        }
-    }
-    return ProcMapsData();
-}
-
-ProcMapsData GetModuleData(int pid,char *moduleName)
-{
-    std::vector<ProcMapsData> maps =  GetMaps(pid);
-    for(int i=0;i<maps.size();i++){
-        ProcMapsData p = maps[i];
-        if(strstr(p.name, moduleName) != NULL){
-            //use ths first on we found
-            LOGD("GetModuleData found %s at %08X",moduleName, p.startddr);
-            return p;
-        }
-    }
-    return ProcMapsData();
-}
-
-unsigned int GetModuleBaseAddr(int pid,char *moduleName)
-{
-    ProcMapsData p = GetModuleData(pid,moduleName);
-    return(p.startddr);
-}
-
-
-
-void DumpHex(void * src,int len)
+void Utils::DumpHex(void * src,int len)
 {
     char tmp[128];
     char line[1024];
@@ -246,6 +91,75 @@ void DumpHex(void * src,int len)
         }
     }
     LOGD("%s",line);line[0]=0;
+}
+
+std::string Utils::ConcatStrings(std::vector<std::string> &lst,std::string seperator)
+{
+    std::string ret;
+    for(int i=0;i<lst.size();i++){
+        if(i!=0){
+            ret += seperator;
+        }
+        ret+= lst[i];
+    }
+    return ret;
+}
+
+bool Utils::StringReplace(std::string& str, const std::string& from, const std::string& to)
+{
+    size_t start_pos = str.find(from);
+    if(start_pos == std::string::npos)
+        return false;
+    str.replace(start_pos, from.length(), to);
+    return true;
+}
+
+std::string Utils::SaveCString(char *data)
+{
+    std::string ret(data);
+    StringReplace(ret,"\"","\\\"");
+    return ret;
+}
+
+bool Utils::WriteAllBytes(char *fileName,unsigned char *data,int size)
+{
+    FILE *f = fopen(fileName,"wb");
+    if(f!=NULL){
+        fwrite(data,size,1,f);
+        fflush(f);
+        fclose(f);
+        return true;
+    }
+    return false;
+}
+
+bool Utils::WriteFile(char *fileName, std::vector<unsigned char> &data) {
+    return WriteAllBytes(fileName,&data[0],data.size());
+}
+
+int Utils::MemoryFind(unsigned char *data,int data_size, unsigned char* pattern,int pattern_size)
+{
+    for(int i=0;i<data_size - pattern_size;i++){
+        if(memcmp(&data[i],&pattern[0],pattern_size)==0){
+            return i;
+        }
+    }
+    return -1;
+}
+
+unsigned int Utils::AllocateExecutableMemory(unsigned int size)
+{
+    void * virtualCodeAddress = 0;
+    virtualCodeAddress = mmap(
+            NULL,
+            size,
+            PROT_READ | PROT_WRITE | PROT_EXEC,
+            MAP_ANONYMOUS | MAP_PRIVATE,
+            0,
+            0);
+    //LOGD("AllocateExecutableMemory: virtualCodeAddress = %p\n", virtualCodeAddress);
+    // write some code in
+    return (unsigned int)virtualCodeAddress;
 }
 
 

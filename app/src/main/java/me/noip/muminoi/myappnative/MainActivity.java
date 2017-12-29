@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     {
         Log.d("KKK","test start");
         test();
-        //patchstrncmp();
+        patchstrncmp();
         Log.d("KKK","test end");
     }
 
