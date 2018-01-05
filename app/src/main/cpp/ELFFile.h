@@ -6,6 +6,13 @@
 #define GOTHOOK_ELFFILE_H
 #include <elf.h>
 
+class ELFExportData {
+public:
+    std::string name;
+    int size;
+    int offset;
+};
+
 class ELFFile {
 protected:
     unsigned char *dataPtr;
@@ -20,6 +27,7 @@ public:
     Elf32_Shdr *GetSectionByName(char *sectionName);
     char *GetSectString(int index);
     char *GetDynString(int index);
+    std::vector<ELFExportData> GetExports();
     static void DumpELFHeader(Elf32_Ehdr* elf_header);
     static void DumpELFSectionHeader(Elf32_Shdr *section_header);
 };

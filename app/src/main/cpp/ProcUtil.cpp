@@ -12,6 +12,7 @@
 #include <android/log.h>
 #include <sys/mman.h>
 #include "Utils.h"
+#include "ELFFile.h"
 #include "ProcUtil.h"
 
 #include <android/log.h>
@@ -144,6 +145,27 @@ unsigned int ProcMap::GetModuleBaseAddr(char *moduleName)
     ProcMapsData p = GetModuleData(moduleName);
     return(p.startAddr);
 }
+
+
+unsigned int ProcMap::GetGotAddress(char *moduleName, char *funcName) {
+    ProcMapsData p = GetModuleData(moduleName);
+    if(!p.isValid()){
+        LOGD("Module Not found %s",moduleName);
+        return 0;
+    }
+    LOGD("moduleBaseAddr=%08X %s",p.startAddr,p.name);
+    unsigned int moduleBaseAddr = p.startAddr;
+
+    ELFFile elf(p.name);
+    Elf32_Shdr *gotPltShdr = elf.GetSectionByName(".got.plt");
+    for (int i = 0; i < gotPltShdr->sh_size; i += sizeof(long)) {
+        unsigned int addr = moduleBaseAddr + gotPltShdr->sh_addr + i;
+        unsigned int funcAddr = *(unsigned int *) (addr);
+        LOGD(".got.plt %08X %08X %08X", funcAddr, funcAddr - moduleBaseAddr,gotPltShdr->sh_addr + i);
+    }
+    return 0;
+}
+
 
 bool ProcMap::MemoryProtect(ProcMapsData p, int value) {
     if(mprotect((void *)p.startAddr, p.endAddr - p.startAddr,value)!=0){

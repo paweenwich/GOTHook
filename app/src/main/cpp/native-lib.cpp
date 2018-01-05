@@ -77,7 +77,7 @@ JNIEXPORT void JNICALL
 Java_me_noip_muminoi_myappnative_MainActivity_test(JNIEnv *env, jobject instance) {
     char *moduleName = "/libfoo.so";
     ProcMap procMap(getpid());
-    ProcMapsData p = procMap.GetModuleData(moduleName);
+/*    ProcMapsData p = procMap.GetModuleData(moduleName);
     if(!p.isValid()){
         LOGD("Module Not found %s",moduleName);
         return;
@@ -86,7 +86,24 @@ Java_me_noip_muminoi_myappnative_MainActivity_test(JNIEnv *env, jobject instance
     unsigned int moduleBaseAddr =p.startAddr;
 
     ELFFile elf(p.name);
-    elf.Dump();
+    elf.Dump();*/
+
+    ProcMapsData pLibC = procMap.GetModuleData("/libc.so");
+    if(!pLibC.isValid()){
+        LOGD("Module Not found %s",moduleName);
+        return;
+    }
+    ELFFile elfLibC(pLibC.name);
+    elfLibC.Dump();
+
+    std::vector<ELFExportData> exports = elfLibC.GetExports();
+    for(int i=0;i<exports.size();i++){
+        LOGD("%d %s %08X %08X %08X",i,exports[i].name.c_str(),exports[i].size,exports[i].offset,pLibC.startAddr + exports[i].offset);
+    }
+    LOGD("strncmp = %08X",(int)strncmp);
+    LOGD("getgid = %08X",(int)getgid);
+
+    //procMap.GetGotAddress(moduleName,"");
 
 }extern "C"
 

@@ -66,6 +66,7 @@ public:
     ProcMapsData GetModuleDataByAddr(unsigned int addr);
     ProcMapsData GetModuleData(char *moduleName);
     unsigned int GetModuleBaseAddr(char *moduleName);
+    unsigned int GetGotAddress(char *moduleName,char *funcName);
     bool MemoryProtect(ProcMapsData p,int value);
     bool Patch(unsigned int addr,unsigned char *data,int size);
     bool PatchInt(unsigned int addr,unsigned int);

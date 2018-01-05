@@ -68,14 +68,25 @@ void ELFFile::Dump()
         DumpELFSectionHeader(section_header);
     }
 
-    LOGD("Import section (.dynsym)");
+    LOGD("Dynamic Symbol section (.dynsym)");
     Elf32_Shdr *gotShdr = GetSectionByName(".dynsym");
     if(gotShdr!=NULL) {
         Utils::DumpHex((void *) (moduleBaseAddr + gotShdr->sh_addr), gotShdr->sh_size);
         for (int i = 0; i < gotShdr->sh_size; i += sizeof(Elf32_Sym)) {
             Elf32_Sym *sym = (Elf32_Sym *) (moduleBaseAddr + gotShdr->sh_addr + i);
-            LOGD("name=%d size=%08X value=%08X %s", sym->st_name, sym->st_size, sym->st_value,
-                 GetDynString(sym->st_name));
+            LOGD("name=%d size=%08X value=%08X Type=%02X Binding=%02X %s",
+                 sym->st_name, sym->st_size, sym->st_value, sym->st_info & 0x0f, sym->st_info>>4, GetDynString(sym->st_name));
+        }
+    }
+
+    LOGD("GOT section (.got.plt)");
+    Elf32_Shdr *gotPltShdr = GetSectionByName(".got.plt");
+    if(gotPltShdr!=NULL) {
+        for (int i = 0; i < gotPltShdr->sh_size; i += sizeof(long)) {
+            unsigned int addr = moduleBaseAddr + gotPltShdr->sh_addr + i;
+            unsigned int funcAddr = *(unsigned int *) (addr);
+            LOGD("addr=%08X funcAddr=%08X %08X %08X",addr, funcAddr, funcAddr - moduleBaseAddr,
+                 gotPltShdr->sh_addr + i);
         }
     }
 }
@@ -106,6 +117,27 @@ char *ELFFile::GetDynString(int index) {
 
 char *ELFFile::GetSectString(int index) {
     return &sectStringTablePtr[index];
+}
+
+std::vector<ELFExportData> ELFFile::GetExports() {
+    std::vector<ELFExportData> ret;
+    unsigned int moduleBaseAddr = (unsigned int)dataPtr;
+    Elf32_Shdr *gotShdr = GetSectionByName(".dynsym");
+    if(gotShdr!=NULL) {
+        for (int i = 0; i < gotShdr->sh_size; i += sizeof(Elf32_Sym)) {
+            Elf32_Sym *sym = (Elf32_Sym *) (moduleBaseAddr + gotShdr->sh_addr + i);
+            int type = sym->st_info & 0x0f;
+            if((sym->st_value != 0) && (type == 2)) {   // type 2 = function
+                char *symName = GetDynString(sym->st_name);
+                ELFExportData d;
+                d.name = symName;
+                d.size = sym->st_size;
+                d.offset = sym->st_value;
+                ret.push_back(d);
+            }
+        }
+    }
+    return ret;
 }
 
 
