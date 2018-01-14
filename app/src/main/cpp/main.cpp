@@ -16,8 +16,5 @@
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 int main(int argc, char const *argv[]) {
-  if (argc < 4) {
-    return -1;
-  }
-
+    printf("Hello World\n");
 }

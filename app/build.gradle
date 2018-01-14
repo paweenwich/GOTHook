@@ -24,6 +24,18 @@ android {
         }
 
     }
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                targets "helloworld"
+                arguments "-DANDROID_TOOLCHAIN=clang"
+                cFlags "-DTEST_C_FLAG1", "-DTEST_C_FLAG2"
+                cppFlags "-DTEST_CPP_FLAG2", "-DTEST_CPP_FLAG2"
+                abiFilters 'armeabi', 'armeabi-v7a', 'x86', 'x86_64'
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
