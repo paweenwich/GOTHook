@@ -17,23 +17,9 @@ public:
     char name[1024];
     unsigned int startAddr;
     unsigned int endAddr;
-    ProcMapsData() {
-        name[0] = 0;
-        range[0] = 0;
-        size[0]=0;
-        unk1[0]=0;
-        unk2[0]=0;
-        startAddr = 0;
-        endAddr = 0;
-    }
-    ProcMapsData(char *line){
-        if(sscanf(line,"%s %s %s %s %s %s",range,mode,size,unk1,unk2,name)>=5){
-            Init();
-        }
-    }
-    bool isValid(){
-        return(endAddr != 0);
-    }
+    ProcMapsData();
+    ProcMapsData(char *line);
+    bool isValid();
 
 };
 

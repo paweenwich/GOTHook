@@ -22,6 +22,34 @@
 #define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+ProcMapsData::ProcMapsData() {
+    name[0] = 0;
+    range[0] = 0;
+    size[0]=0;
+    unk1[0]=0;
+    unk2[0]=0;
+    startAddr = 0;
+    endAddr = 0;
+}
+
+ProcMapsData::ProcMapsData(char *line){
+    name[0] = 0;
+    range[0] = 0;
+    size[0]=0;
+    unk1[0]=0;
+    unk2[0]=0;
+    startAddr = 0;
+    endAddr = 0;
+    if(sscanf(line,"%s %s %s %s %s %s",range,mode,size,unk1,unk2,name)>=5){
+        Init();
+    }
+}
+
+bool ProcMapsData::isValid(){
+    return(endAddr != 0);
+}
+
+
 void ProcMapsData::Init() {
     char tmp[32];
     strcpy(tmp,range);

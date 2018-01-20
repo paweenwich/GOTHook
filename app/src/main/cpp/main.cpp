@@ -16,6 +16,8 @@
 #define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+#define  SHARED_FOLDER "/storage/sdcard/windows/BstSharedFolder"
+
 int main(int argc, char const *argv[]) {
     printf("Hello World Haha\n");
     int pid = ProcUtil::GetPid("com.netmarble.revolutionthm");
