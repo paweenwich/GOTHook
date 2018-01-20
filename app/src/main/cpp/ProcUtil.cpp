@@ -68,7 +68,7 @@ long ProcUtil::GetPid(const char *process_name) {
     }
     struct dirent* entry;
     while((entry = readdir(dir)) != NULL) {
-        long pid = atoi(entry->d_name);
+        int pid = atoi(entry->d_name);
         if (pid != 0) {
             char file_name[64];
             sprintf(file_name, "/proc/%d/cmdline", pid);
@@ -193,6 +193,42 @@ bool ProcMap::PatchInt(unsigned int addr, unsigned int value) {
 }
 
 
+SimpleBuffer::SimpleBuffer(int size): std::vector<unsigned char>(size,0) {
 
+}
 
+int SimpleBuffer::Size() {
+    return this->size();
+}
 
+void SimpleBuffer::Append(void *ptr, int size) {
+    this->insert(this->end(),(unsigned char *)ptr,(unsigned char *)((unsigned char *)ptr+size));
+}
+
+ProcMem::ProcMem(int pid) {
+    char file_name[64];
+    sprintf(file_name, "/proc/%d/mem", pid);
+
+    this->pid = pid;
+    this->f = fopen(file_name, "r+b");
+    if(this->f==NULL) {
+        LOGD("ProcMem fopen fail %s",file_name);
+    }
+}
+
+SimpleBuffer ProcMem::Read(unsigned int addr, int size) {
+    SimpleBuffer ret(size);
+    if(this->f!=NULL){
+        fseek(this->f,addr,SEEK_SET);
+        fread(&ret[0],size,1,this->f);
+    }
+    return ret;
+}
+
+bool ProcMem::Write(unsigned int addr, void *ptr, int size) {
+    if(this->f!=NULL){
+        fseek(this->f,addr,SEEK_SET);
+        fwrite(ptr,size,1,this->f);
+    }
+    return true;
+}

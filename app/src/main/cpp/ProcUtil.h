@@ -72,6 +72,22 @@ public:
     bool PatchInt(unsigned int addr,unsigned int);
 };
 
+class SimpleBuffer: public std::vector<unsigned char> {
+public:
+    SimpleBuffer(int size=0);
+    int Size();
+    void Append(void *ptr,int size);
+};
+
+class ProcMem {
+public:
+    int pid;
+    FILE *f;
+    ProcMem(int pid);
+    SimpleBuffer Read(unsigned int addr,int size);
+    bool Write(unsigned int addr,void *ptr,int size);
+};
+
 
 
 

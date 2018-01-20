@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "Utils.h"
+#include "ProcUtil.h"
 
 #include <android/log.h>
 #include <cctype>
@@ -17,4 +18,8 @@
 
 int main(int argc, char const *argv[]) {
     printf("Hello World Haha\n");
+    ProcMem pMem(3581);
+    if(pMem.f!=NULL){
+        printf("Success\n");
+    }
 }

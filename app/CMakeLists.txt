@@ -66,7 +66,18 @@ add_executable(
     helloworld
     #files
     src/main/cpp/main.cpp
+    src/main/cpp/Utils.cpp
+    src/main/cpp/ProcUtil.cpp
+    src/main/cpp/ELFFile.cpp
+    src/main/cpp/native-lib.cpp
 )
+
+target_link_libraries( # Specifies the target library.
+                       helloworld
+
+                       # Links the target library to the log library
+                       # included in the NDK.
+                       ${log-lib} )
 
 #add_custom_target(Qt5CopyBinaries
     #COMMAND ${CMAKE_COMMAND} -E copy D:/kwang/android/GOTHook/app/build/intermediates/cmake/debug/obj/x86/helloworld D:/kwang/helloworld
