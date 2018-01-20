@@ -16,5 +16,5 @@
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 int main(int argc, char const *argv[]) {
-    printf("Hello World\n");
+    printf("Hello World Haha\n");
 }

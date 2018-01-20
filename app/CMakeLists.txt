@@ -67,3 +67,27 @@ add_executable(
     #files
     src/main/cpp/main.cpp
 )
+
+#add_custom_target(Qt5CopyBinaries
+    #COMMAND ${CMAKE_COMMAND} -E copy D:/kwang/android/GOTHook/app/build/intermediates/cmake/debug/obj/x86/helloworld D:/kwang/helloworld
+#    COMMAND adb push D:/kwang/android/GOTHook/app/build/intermediates/cmake/debug/obj/x86/helloworld /data/local/tmp/helloworld
+#)
+
+#add_dependencies(helloworld Qt5CopyBinaries)
+
+add_custom_command(TARGET helloworld POST_BUILD
+  #COMMAND ${CMAKE_COMMAND} -E "environment"
+  COMMAND adb push ${PROJECT_BINARY_DIR}/helloworld /data/local/tmp/helloworld
+  COMMAND adb shell chmod 777 /data/local/tmp/helloworld
+)
+
+#DUMP All Variable
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+
+
+
+
+
