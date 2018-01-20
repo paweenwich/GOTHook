@@ -18,8 +18,13 @@
 
 int main(int argc, char const *argv[]) {
     printf("Hello World Haha\n");
-    ProcMem pMem(3581);
-    if(pMem.f!=NULL){
-        printf("Success\n");
+    int pid = ProcUtil::GetPid("com.netmarble.revolutionthm");
+    printf("pid=%d\n",pid);
+    if(pid >0){
+        ProcMem pMem(pid);
+        if(pMem.f!=NULL){
+            printf("Success\n");
+        }
     }
+
 }
