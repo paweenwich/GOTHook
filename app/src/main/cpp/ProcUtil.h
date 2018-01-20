@@ -61,8 +61,8 @@ public:
     int pid;
     std::vector<ProcMapsData> maps;
     std::vector<PatchData> patchs;
-    ProcMap(int pid);
-    void GetMaps(int pid);
+    ProcMap(int pid,bool all=false);
+    void GetMaps(int pid,bool all);
     ProcMapsData GetModuleDataByAddr(unsigned int addr);
     ProcMapsData GetModuleData(char *moduleName);
     unsigned int GetModuleBaseAddr(char *moduleName);

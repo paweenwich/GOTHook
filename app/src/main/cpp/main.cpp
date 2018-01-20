@@ -21,9 +21,10 @@ int main(int argc, char const *argv[]) {
     int pid = ProcUtil::GetPid("com.netmarble.revolutionthm");
     printf("pid=%d\n",pid);
     if(pid >0){
+        ProcMap pMap(pid,true);
         ProcMem pMem(pid);
-        if(pMem.f!=NULL){
-            printf("Success\n");
+        for(int i=0;i<pMap.maps.size();i++){
+            printf("%s %s %s\n",pMap.maps[i].range,pMap.maps[i].mode,pMap.maps[i].name);
         }
     }
 

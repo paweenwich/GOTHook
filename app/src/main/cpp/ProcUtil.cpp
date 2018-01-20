@@ -87,12 +87,13 @@ long ProcUtil::GetPid(const char *process_name) {
 }
 
 
-ProcMap::ProcMap(int pid) {
+ProcMap::ProcMap(int pid,bool all) {
     this->pid = pid;
-    GetMaps(pid);
+    //printf("%d\n",all);
+    GetMaps(pid,all);
 }
 
-void ProcMap::GetMaps(int pid)
+void ProcMap::GetMaps(int pid,bool all)
 {
     maps.clear();
     char file_name[50];
@@ -106,8 +107,13 @@ void ProcMap::GetMaps(int pid)
     if (fp != NULL) {
         while(fgets(line, sizeof(line)-1, fp) != NULL) {
             ProcMapsData p(line);
-            if(p.isValid()){
+            if(all){
+                //printf("%s\n",line);
                 maps.push_back(p);
+            }else {
+                if (p.isValid()) {
+                    maps.push_back(p);
+                }
             }
         }
         fclose(fp);
